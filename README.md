@@ -71,7 +71,7 @@ Zooming is activated by scrolling (using the mouse wheel) and moving the mouse c
     <img src="images/both.gif" width="512"/>
 </p>
 
-### dragmov
+### dragmove
 Drag and move mode Single-click to zoom in, click and drag to move the zoomed image, and double-click to zoom out.
 
 
