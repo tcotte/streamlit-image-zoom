@@ -6,7 +6,7 @@ import numpy as np
 import streamlit.components.v1 as components
 from PIL import Image
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 
 def check_image(image: Union[Image.Image, np.ndarray]) -> Image.Image:
@@ -107,7 +107,9 @@ def image_zoom(
     Args:
         image (Union[Image.Image, np.ndarray]): The image to be displayed. It can be a PIL Image or a NumPy array.
         mode (Optional[str]): The mode of interaction for zooming. Valid options are "default" (zoom on mousemove),
-            "mousemove" (zoom on mousemove), "scroll" (zoom on scroll), or "both" (zoom on both mousemove and scroll).
+            "mousemove" (zoom on mousemove), "scroll" (zoom on scroll), "both" (zoom on both mousemove and scroll)
+            or "dragmove" (drag and move zoom: Single-click to zoom in, click and drag to move the zoomed image,
+            and double-click to zoom out).
             Default is "default".
         size (Optional[Union[int, Tuple[int, int]]]): The desired size of the displayed image.
             If an integer is provided, the image will be resized to have that size (width = height).
@@ -139,7 +141,7 @@ def image_zoom(
     """
     mode = mode.lower()
     assert (
-        mode in ["default", "mousemove", "scroll", "both"]
+        mode in ["default", "mousemove", "scroll", "both", "dragmove"]
     ), "Only valid event mode are default, mousemove, scroll and both. Default work with mousemove."
     zoom_factor = float(zoom_factor) if isinstance(zoom_factor, int) else zoom_factor
     assert increment <= 1.0 or increment > 0.0, "Increment should be between 0 and 1."
@@ -298,6 +300,96 @@ def image_zoom(
                     scale = 1;
                 });
             };
+
+            function ImageDragMove(selector, scale_factor, keep_resolution) {
+                const image = document.getElementById(selector);
+                let scale = 1;
+                let startX, startY, clickX, clickY;
+                let initialX = 0, initialY = 0;
+                let isDragging = false;
+                let zoomed = false; 
+                
+                image.style.transition = 'transform 0.2s ease, left 0s, top 0s';
+
+                let originalSrc, resizedSrc;
+                if (keep_resolution) {
+                    originalSrc = image.getAttribute('data-original-src');
+                    resizedSrc = image.getAttribute('src');
+                    if (!originalSrc) {
+                        image.setAttribute('data-original-src', resizedSrc);
+                        originalSrc = resizedSrc;
+                    }
+                }
+
+                image.addEventListener('mousedown', (event) => {
+                    if (zoomed) {
+                        // Start dragging
+                        startX = event.clientX;
+                        startY = event.clientY;
+                        initialX = image.offsetLeft;
+                        initialY = image.offsetTop;
+                        image.style.cursor = 'grabbing';
+                        isDragging = true;
+                        event.preventDefault();
+                    } else {
+                        // Record click position for zooming in
+                        clickX = event.clientX;
+                        clickY = event.clientY;
+                    }
+                });
+
+                document.addEventListener('mouseup', (event) => {
+                    if (zoomed && isDragging) {
+                        // Stop dragging
+                        isDragging = false;
+                        image.style.cursor = 'grab';
+                    } else if (!zoomed && !isDragging && Math.abs(event.clientX - clickX) < 5 && Math.abs(event.clientY - clickY) < 5) {
+                        // Zoom in on click
+                        const rect = image.getBoundingClientRect();
+                        const offsetX = event.clientX - rect.left;
+                        const offsetY = event.clientY - rect.top;
+                        const originX = `${offsetX}px`;
+                        const originY = `${offsetY}px`;
+
+                        if (keep_resolution && originalSrc !== resizedSrc) {
+                            image.src = originalSrc;
+                        }
+
+                        scale = scale_factor;
+                        image.style.transformOrigin = `${originX} ${originY}`;
+                        image.style.transform = `scale(${scale})`;
+                        image.style.cursor = 'grab';
+                        zoomed = true;
+                    }
+                });
+
+                image.addEventListener('dblclick', (event) => {
+                    if (zoomed) {
+                        // Zoom out
+                        image.style.transform = `scale(1)`;
+                        image.style.left = '0';
+                        image.style.top = '0';
+                        image.style.cursor = 'zoom-in';
+                        zoomed = false;
+                        isDragging = false;
+                        scale = 1;
+
+                        if (keep_resolution && resizedSrc) {
+                            image.src = resizedSrc;
+                        }
+                    }
+                });
+
+                document.addEventListener('mousemove', (event) => {
+                    if (zoomed && isDragging) {
+                        // Move the zoomed image
+                        const dx = (event.clientX - startX);
+                        const dy = (event.clientY - startY);
+                        image.style.left = `${initialX + dx}px`;
+                        image.style.top = `${initialY + dy}px`;
+                    }
+                });
+            };
         </script>
     """
 
@@ -316,6 +408,8 @@ def image_zoom(
             ImageZoomScroll('image', {zoom_factor}, {increment},  {str(keep_resolution).lower()});
         }} else if (mode == "both") {{
             ImageZoomBoth('image', {zoom_factor}, {increment}, {str(keep_resolution).lower()});
+        }} else if (mode == "dragmove") {{
+            ImageDragMove('image', {zoom_factor}, {str(keep_resolution).lower()});
         }}
         </script>
     """
