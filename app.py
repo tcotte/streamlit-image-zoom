@@ -54,6 +54,7 @@ def main():
         type=["png", "jpg", "jpeg", "tiff", "bmp"],
         key="file_uploader1",
     )
+    
     if st.session_state.uploaded is not None:
         img = load_image(st.session_state.uploaded)
         st.session_state.image_name = st.session_state.uploaded.name
@@ -63,16 +64,19 @@ def main():
         st.session_state.image_name = "no-image.jpg"
     st.sidebar.divider()
 
-    mode = st.sidebar.radio("Select mode:", ["mousemove", "scroll", "both"], index=0)
+    mode = st.sidebar.radio("Select mode:", ["mousemove", "scroll", "both", "dragmove"], index=0)
     zoom_factor = st.sidebar.slider(
         "Select zoom factor:", min_value=1, max_value=5, value=2, step=1
     )
-    if mode != "mousemove":
+    if mode not in ["mousemove", "dragmove"]:
         increase_factor = st.sidebar.slider(
             "Select increase factor:", min_value=0.0, max_value=1.0, value=0.2, step=0.1
         )
     else:
         increase_factor = 0.0
+
+    keep_res = st.sidebar.checkbox("Keep resolution")
+
     st.sidebar.divider()
 
     ####################################################################
@@ -85,6 +89,7 @@ def main():
         size=st.session_state.size_image,
         zoom_factor=zoom_factor,
         increment=increase_factor,
+        keep_resolution=keep_res,
     )
 
 

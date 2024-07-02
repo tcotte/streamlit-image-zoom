@@ -39,7 +39,7 @@ def image_zoom(image: Union[Image.Image, np.ndarray],
 ### Parameters
 
 - `image`: The image to be displayed. It can be either a PIL Image or a NumPy array.
-- `mode`: The mode of interaction for zooming. Valid options are "default" (zoom on mousemove), "mousemove" (zoom on mousemove), "scroll" (zoom on scroll), or "both" (zoom on both mousemove and scroll). Default is "default".
+- `mode`: The mode of interaction for zooming. Valid options are "default" (zoom on mousemove), "mousemove" (zoom on mousemove), "scroll" (zoom on scroll), "both" (zoom on both mousemove and scroll) or "dragmove" (Single-click to zoom in, click and drag to move the zoomed image). Default is "default".
 - `size`: The desired size of the displayed image. If an integer is provided, the image will be resized to have that size (width = height). If a tuple of integers (width, height) is provided, the image will be resized to fit within the specified dimensions while maintaining its aspect ratio. Default is 512.
 - `keep_aspect_ratio`: Whether to maintain the aspect ratio of the image during resizing. If True, the image will be resized while preserving its aspect ratio. If False, the image will be resized to exactly match the provided size without preserving aspect ratio. Default is True.
 - `keep_resolution`: Whether to keep the original resolution for zooming. If True, use the original resolution for zooming. If False, use the resized image for zooming. Default is False.  
@@ -70,6 +70,10 @@ Zooming is activated by scrolling (using the mouse wheel) and moving the mouse c
 <p align="center">
     <img src="images/both.gif" width="512"/>
 </p>
+
+### dragmove
+Drag and move mode Single-click to zoom in, click and drag to move the zoomed image, and double-click to zoom out.
+
 
 ## Examples
 
