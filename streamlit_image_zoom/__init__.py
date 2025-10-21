@@ -3,6 +3,7 @@ import io
 from typing import Optional, Tuple, Union
 
 import numpy as np
+import streamlit
 import streamlit.components.v1 as components
 from PIL import Image
 
@@ -93,13 +94,14 @@ def prepare_image(image, size, keep_aspect_ratio):
 
 
 def image_zoom(
-    image: Union[Image.Image, np.ndarray],
-    mode: Optional[str] = "default",
-    size: Optional[Union[int, Tuple[int, int]]] = 512,
-    keep_aspect_ratio: Optional[bool] = True,
-    keep_resolution: Optional[bool] = False,
-    zoom_factor: Optional[Union[float, int]] = 2.0,
-    increment: Optional[float] = 0.2,
+        image: Union[Image.Image, np.ndarray],
+        mode: Optional[str] = "default",
+        size: Optional[Union[int, Tuple[int, int]]] = 512,
+        keep_aspect_ratio: Optional[bool] = True,
+        keep_resolution: Optional[bool] = False,
+        zoom_factor: Optional[Union[float, int]] = 2.0,
+        increment: Optional[float] = 0.2,
+        caption: Optional[str] = None
 ) -> components.html:
     """
     Display an image with interactive zoom functionality.
@@ -141,7 +143,7 @@ def image_zoom(
     """
     mode = mode.lower()
     assert (
-        mode in ["default", "mousemove", "scroll", "both", "dragmove"]
+            mode in ["default", "mousemove", "scroll", "both", "dragmove"]
     ), "Only valid event mode are default, mousemove, scroll and both. Default work with mousemove."
     zoom_factor = float(zoom_factor) if isinstance(zoom_factor, int) else zoom_factor
     assert increment <= 1.0 or increment > 0.0, "Increment should be between 0 and 1."
@@ -161,20 +163,37 @@ def image_zoom(
         img_resized_base64, resized_size = prepare_image(image, size, keep_aspect_ratio)
         params_keep_res = ""
 
-    css_code = """
+    theme = streamlit.context.theme.type
+    caption_color = "#ffffff" if theme == "dark" else "#31333f"
+
+    css_code = f"""
         <style>
-            #container {
+            #container {{
                 position: relative;
                 overflow: hidden;
                 cursor: zoom-in;
-            }
-            #image {
+            }}
+            #image {{
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
                 height: 100%;
-            }
+                border-radius: 0.5rem;
+            }}
+            body {{
+                margin: 0;
+            }}
+            
+            p {{
+                margin:0; 
+                font-family: 'Source Sans Pro', system-ui, sans-serif; 
+                font-size: 0.875rem; 
+                color: {caption_color}; 
+                line-height: 1.4;
+                opacity: 0.6;
+            }}
+            
         </style>
     """
     js_code = """
@@ -394,24 +413,56 @@ def image_zoom(
     """
 
     # Assemble the HTML code with CSS and JS.
-    html_code = f"""
-        {css_code}
-        <div id="container" style="width: {resized_size[0]}px; height: {resized_size[1]}px;">
-            <img id="image" src="{img_resized_base64}" {params_keep_res}>
-        </div>
-        {js_code}
-        <script>
-        var mode = "{mode}";
-        if (mode == "mousemove" || mode == "default") {{
-            ImageZoomMouseMove('image', {zoom_factor}, {str(keep_resolution).lower()});
-        }} else if (mode == "scroll") {{
-            ImageZoomScroll('image', {zoom_factor}, {increment},  {str(keep_resolution).lower()});
-        }} else if (mode == "both") {{
-            ImageZoomBoth('image', {zoom_factor}, {increment}, {str(keep_resolution).lower()});
-        }} else if (mode == "dragmove") {{
-            ImageDragMove('image', {zoom_factor}, {str(keep_resolution).lower()});
-        }}
-        </script>
-    """
+    script = f"""<script>
+            var mode = "{mode}";
+            if (mode == "mousemove" || mode == "default") {{
+                ImageZoomMouseMove('image', {zoom_factor}, {str(keep_resolution).lower()});
+            }} else if (mode == "scroll") {{
+                ImageZoomScroll('image', {zoom_factor}, {increment},  {str(keep_resolution).lower()});
+            }} else if (mode == "both") {{
+                ImageZoomBoth('image', {zoom_factor}, {increment}, {str(keep_resolution).lower()});
+            }} else if (mode == "dragmove") {{
+                ImageDragMove('image', {zoom_factor}, {str(keep_resolution).lower()});
+            }}
+            </script>
+            """
 
-    return components.html(html_code, width=resized_size[0], height=resized_size[1])
+    caption_height = 0
+
+    if not caption:
+        html_code = f"""
+            {css_code}
+    
+            <div id="container" style="width: {resized_size[0]}px; height: {resized_size[1]}px;">
+                <img id="image" src="{img_resized_base64}" {params_keep_res}>
+            </div>
+    
+            {js_code}
+            {script}
+        """
+
+    else:
+        caption_height = 40
+        html_code = f"""
+            <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap" rel="stylesheet">
+
+            {css_code}
+            <div id="container" style="width: {resized_size[0]}px; height: {resized_size[1]}px;">
+                <img id="image" src="{img_resized_base64}" {params_keep_res}>
+               
+
+            </div>
+            <div data-testid="stImageCaption" class="st-emotion-cache-r8fbmg e1mq0gaz2" style="width: 100%; max-width: 100%; text-align: center; margin-top: 0.375rem; overflow-wrap: break-word; padding: 0.125rem;">
+                <div data-testid="stCaptionContainer" class="st-emotion-cache-1jbidbm et2rgd20">
+                    <p>
+                        {caption}
+                    </p>
+                </div>
+            </div>
+
+            {js_code}
+            {script}
+            
+        """
+
+    return components.html(html_code, width=resized_size[0], height=resized_size[1] + caption_height)
